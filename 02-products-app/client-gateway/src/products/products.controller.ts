@@ -1,5 +1,6 @@
-import { Controller, Get, Inject, Query } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { catchError } from 'rxjs';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { PRODUCT_SERVICE } from 'src/config/services';
 
@@ -12,5 +13,14 @@ export class ProductsController {
   @Get()
   findAll(@Query() pagination: PaginationDto) {
     return this.productsClient.send({ cmd: 'find_all_products' }, pagination);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.productsClient.send({ cmd: 'find_one_product' }, { id }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 }

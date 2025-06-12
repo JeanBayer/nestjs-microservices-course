@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { PrismaClient } from '../../generated/prisma';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -52,7 +48,10 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
     if (!product) {
       this.logger.error(`Product with id ${id} not found`);
-      throw new NotFoundException(`Product with id ${id} not found`);
+      throw new RpcException({
+        status: HttpStatus.NOT_FOUND,
+        message: `Product with id ${id} not found`,
+      });
     }
     this.logger.log(`Product with id ${id} found successfully`);
     return product;
