@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Injectable,
   Logger,
@@ -24,12 +25,13 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
   async findAll(pagination: PaginationDto) {
     const { page, limit } = pagination;
-    const total = await this.product.count();
+    const total = await this.product.count({ where: { available: true } });
     const lastPage = Math.ceil(total / limit);
 
     const products = await this.product.findMany({
       take: limit,
       skip: (page - 1) * limit,
+      where: { available: true },
     });
 
     return {
@@ -45,7 +47,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
   async findOne(id: number) {
     const product = await this.product.findUnique({
-      where: { id },
+      where: { id, available: true },
     });
 
     if (!product) {
@@ -57,17 +59,19 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
+    const { id: _, ...data } = updateProductDto;
     await this.findOne(id);
     return this.product.update({
       where: { id },
-      data: updateProductDto,
+      data,
     });
   }
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.product.delete({
+    return this.product.update({
       where: { id },
+      data: { available: false },
     });
   }
 }
