@@ -5,6 +5,8 @@ const EnvSchema = z.object({
   PORT: z.number({ coerce: true }),
   PRODUCTS_MS_PORT: z.number({ coerce: true }),
   PRODUCTS_MS_HOST: z.string(),
+  ORDERS_MS_PORT: z.number({ coerce: true }),
+  ORDERS_MS_HOST: z.string(),
 });
 
 const env = EnvSchema.safeParse(process.env);
