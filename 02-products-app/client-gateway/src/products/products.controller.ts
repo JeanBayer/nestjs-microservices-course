@@ -57,6 +57,10 @@ export class ProductsController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'remove_product' }, { id });
+    return this.productsClient.send({ cmd: 'remove_product' }, { id }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 }
