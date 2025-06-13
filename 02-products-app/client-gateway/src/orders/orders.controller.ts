@@ -46,7 +46,6 @@ export class OrdersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() changeOrderStatusDto: ChangeOrderStatusDto,
   ) {
-    console.log('changeOrderStatusDto', changeOrderStatusDto);
     return this.ordersClient
       .send('changeOrderStatus', {
         id,
