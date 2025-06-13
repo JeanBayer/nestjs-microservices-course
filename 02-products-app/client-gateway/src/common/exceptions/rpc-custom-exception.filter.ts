@@ -25,6 +25,7 @@ export class RpcCustomExceptionFilter implements ExceptionFilter {
     }>();
 
     const error = exception.getError() as unknown;
+
     try {
       const rpcError = new ExceptionBodyDto(error);
 
