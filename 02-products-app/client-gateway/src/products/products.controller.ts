@@ -57,6 +57,6 @@ export class ProductsController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'remove_product' }, { id: +id });
+    return this.productsClient.send({ cmd: 'remove_product' }, { id });
   }
 }
