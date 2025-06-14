@@ -1,29 +1,44 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-} from 'class-validator';
-import { OrderStatus } from 'generated/prisma';
-import { OrderStatusList } from '../enum/order.enum';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { Type } from 'class-transformer';
+import { ArrayMinSize, IsArray, ValidateNested } from 'class-validator';
+import { OrderItemDto } from './order-item.dto';
+import { ProductDto } from './product.dto';
 
 export class CreateOrderDto {
-  @IsNumber()
-  @IsPositive()
-  totalAmount: number;
-
-  @IsNumber()
-  @IsPositive()
-  totalItems: number;
-
-  @IsEnum(OrderStatusList, {
-    message: `Status must be one of the following: ${OrderStatusList.join(', ')}`,
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({
+    each: true,
   })
-  @IsOptional()
-  status: OrderStatus = OrderStatus.PENDING;
+  @Type(() => OrderItemDto)
+  items: OrderItemDto[];
 
-  @IsBoolean()
-  @IsOptional()
-  paid: boolean = false;
+  getTotalQuantity(): number {
+    return (
+      this.items?.reduce((sum, item) => sum + (item.quantity ?? 0), 0) ?? 0
+    );
+  }
+
+  getTotalAmount(): number {
+    return (
+      this.items?.reduce((sum, item) => sum + item.quantity * item.price, 0) ??
+      0
+    );
+  }
+
+  updatePriceItem(products: ProductDto) {
+    const newItems = this.items.map((item) => {
+      const price = products.getProductById(item.productId)?.price;
+
+      if (!price) throw new Error('Product not found');
+
+      return {
+        ...item,
+        price,
+      };
+    });
+
+    this.items = newItems;
+  }
 }

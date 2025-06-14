@@ -2,6 +2,7 @@
 import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Venn } from 'src/common/utils/venn';
 import { PrismaClient } from '../../generated/prisma';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -72,5 +73,29 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       where: { id },
       data: { available: false },
     });
+  }
+
+  async validateProducts(ids: number[]) {
+    const uniqueIds = Array.from(new Set(ids));
+
+    const products = await this.product.findMany({
+      where: {
+        id: {
+          in: uniqueIds,
+        },
+      },
+    });
+
+    if (products.length !== uniqueIds.length) {
+      const productsId = products?.map((product) => product.id);
+      const notFoundIds = Venn.getExclusive(uniqueIds, productsId, 'A');
+
+      throw new RpcException({
+        status: HttpStatus.CONFLICT,
+        message: `Product with id ${notFoundIds.join(', ')} not found`,
+      });
+    }
+
+    return products;
   }
 }
