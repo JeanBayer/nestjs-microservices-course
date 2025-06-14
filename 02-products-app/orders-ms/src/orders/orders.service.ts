@@ -163,7 +163,10 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const order = await this.findOne(id);
 
     if (order.status === status) {
-      return order;
+      return {
+        ...order,
+        orderItem: undefined,
+      };
     }
 
     return this.order.update({
