@@ -7,6 +7,7 @@ const EnvSchema = z.object({
   PRODUCTS_MS_HOST: z.string(),
   ORDERS_MS_PORT: z.number({ coerce: true }),
   ORDERS_MS_HOST: z.string(),
+  NATS_SERVERS: z.string().transform((val) => val.split(',')),
 });
 
 const env = EnvSchema.safeParse(process.env);

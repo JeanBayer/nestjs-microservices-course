@@ -13,32 +13,27 @@ import {
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { PRODUCT_SERVICE } from 'src/config/services';
+import { NATS_SERVICE } from 'src/config/services';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
-  ) {}
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
-    return this.productsClient.send(
-      { cmd: 'create_product' },
-      createProductDto,
-    );
+    return this.client.send({ cmd: 'create_product' }, createProductDto);
   }
 
   @Get()
   findAll(@Query() pagination: PaginationDto) {
-    return this.productsClient.send({ cmd: 'find_all_products' }, pagination);
+    return this.client.send({ cmd: 'find_all_products' }, pagination);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'find_one_product' }, { id }).pipe(
+    return this.client.send({ cmd: 'find_one_product' }, { id }).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
@@ -47,7 +42,7 @@ export class ProductsController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsClient
+    return this.client
       .send({ cmd: 'update_product' }, { id: +id, ...updateProductDto })
       .pipe(
         catchError((error) => {
@@ -58,7 +53,7 @@ export class ProductsController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'remove_product' }, { id }).pipe(
+    return this.client.send({ cmd: 'remove_product' }, { id }).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
@@ -68,7 +63,7 @@ export class ProductsController {
   @Get('/validate/ids')
   validate(@Query('ids', ParseArrayPipe) ids: string[]) {
     console.log(ids);
-    return this.productsClient
+    return this.client
       .send(
         { cmd: 'validate_products' },
         ids.map((el) => +el),

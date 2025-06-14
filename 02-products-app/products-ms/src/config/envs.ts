@@ -4,6 +4,7 @@ import z from 'zod';
 const EnvSchema = z.object({
   PORT: z.number({ coerce: true }),
   DATABASE_URL: z.string().url(),
+  NATS_SERVERS: z.string().transform((val) => val.split(',')),
 });
 
 const env = EnvSchema.safeParse(process.env);

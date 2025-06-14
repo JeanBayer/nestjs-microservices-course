@@ -10,7 +10,7 @@ import { plainToInstance } from 'class-transformer';
 import { PrismaClient } from 'generated/prisma';
 import { firstValueFrom } from 'rxjs';
 import { OrderPaginationDto } from 'src/common/dto/order-pagination.dto';
-import { PRODUCT_SERVICE } from 'src/config/services';
+import { NATS_SERVICE } from 'src/config/services';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemDto } from './dto/order-item.dto';
@@ -20,9 +20,7 @@ import { ProductDto, ProductItemDto } from './dto/product.dto';
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(OrdersService.name);
-  constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
-  ) {
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {
     super();
   }
 
@@ -141,7 +139,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     productIds: number[],
   ): Promise<ProductDto> {
     const productItems: ProductItemDto[] = await firstValueFrom(
-      this.productsClient.send({ cmd: 'validate_products' }, productIds),
+      this.client.send({ cmd: 'validate_products' }, productIds),
     );
     return plainToInstance(ProductDto, { items: productItems });
   }
