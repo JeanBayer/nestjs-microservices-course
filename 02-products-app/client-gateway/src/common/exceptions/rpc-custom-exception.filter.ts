@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { Type } from 'class-transformer';
 import { IsNumber, IsString } from 'class-validator';
 
@@ -16,42 +17,27 @@ export class ExceptionBodyDto {
   }
 }
 
+@Catch(RpcException)
 export class RpcCustomExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: RpcException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<{
       status: (code: number) => { json: (body: any) => any };
     }>();
 
-    if (exception?.status && exception?.message) {
-      response.status(exception.status).json({
-        status: exception.status,
-        message: exception.message,
-      });
-      return;
-    }
-
-    if (exception?.getError === undefined) {
-      response.status(500).json({
-        status: 500,
-        message: 'Internal Server Error',
-      });
-      return;
-    }
-
-    const error = exception.getError() as unknown;
+    const error = exception.getError();
 
     try {
       const rpcError = new ExceptionBodyDto(error);
 
       response.status(rpcError.status).json({
-        status: rpcError.status,
-        message: rpcError.message,
+        statusCode: rpcError.status,
+        message: [rpcError.message],
       });
     } catch (_) {
       response.status(500).json({
-        status: 500,
-        message: 'Internal Server Error',
+        statusCode: 500,
+        message: ['Internal Server Error'],
       });
     }
   }
