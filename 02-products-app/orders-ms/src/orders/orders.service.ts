@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   HttpStatus,
   Inject,
@@ -18,6 +13,8 @@ import { OrderPaginationDto } from 'src/common/dto/order-pagination.dto';
 import { PRODUCT_SERVICE } from 'src/config/services';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { OrderItemDto } from './dto/order-item.dto';
+import { OrderResponse } from './dto/order-response.dto';
 import { ProductDto, ProductItemDto } from './dto/product.dto';
 
 @Injectable()
@@ -36,32 +33,20 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
 
   async create(createOrderDto: CreateOrderDto) {
     const createOrder = plainToInstance(CreateOrderDto, createOrderDto);
-    const productIds = createOrder.items.map((el) => el.productId);
-    const productItems: ProductItemDto[] = await firstValueFrom(
-      this.productsClient.send({ cmd: 'validate_products' }, productIds),
+
+    const products = await this.getValidatedProducts(
+      createOrder.items.map((el) => el.productId),
     );
 
-    const products = plainToInstance(ProductDto, {
-      items: productItems,
-    });
-
     createOrder.updatePriceItem(products);
-    const totalAmount = createOrder.getTotalAmount();
-    const totalItems = createOrder.getTotalQuantity();
-
-    const items = createOrder.items.map((item) => ({
-      price: item.price,
-      productId: item.productId,
-      quantity: item.quantity,
-    }));
 
     const order = await this.order.create({
       data: {
-        totalAmount,
-        totalItems,
+        totalAmount: createOrder.getTotalAmount(),
+        totalItems: createOrder.getTotalQuantity(),
         orderItem: {
           createMany: {
-            data: items,
+            data: this.mapOrderItems(createOrder.items),
           },
         },
       },
@@ -76,15 +61,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       },
     });
 
-    return {
-      ...order,
-      orderItem: order?.orderItem?.map((item) => {
-        return {
-          ...item,
-          name: products.getProductById(item?.productId)?.name || '',
-        };
-      }),
-    };
+    return this.buildOrderResponse(order, products);
   }
 
   async findAll(orderPagination: OrderPaginationDto) {
@@ -136,25 +113,10 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     }
 
     const productIds = order.orderItem.map((el) => el.productId);
-
-    const productItems: ProductItemDto[] = await firstValueFrom(
-      this.productsClient.send({ cmd: 'validate_products' }, productIds),
-    );
-
-    const products = plainToInstance(ProductDto, {
-      items: productItems,
-    });
+    const products = await this.getValidatedProducts(productIds);
 
     this.logger.log(`Order with id ${id} found successfully`);
-    return {
-      ...order,
-      orderItem: order?.orderItem?.map((item) => {
-        return {
-          ...item,
-          name: products.getProductById(item?.productId)?.name || '',
-        };
-      }),
-    };
+    return this.buildOrderResponse(order, products);
   }
 
   async changeOrderStatus(changeOrderStatus: ChangeOrderStatusDto) {
@@ -173,5 +135,35 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       where: { id },
       data: { status },
     });
+  }
+
+  private async getValidatedProducts(
+    productIds: number[],
+  ): Promise<ProductDto> {
+    const productItems: ProductItemDto[] = await firstValueFrom(
+      this.productsClient.send({ cmd: 'validate_products' }, productIds),
+    );
+    return plainToInstance(ProductDto, { items: productItems });
+  }
+
+  private mapOrderItems(items: OrderItemDto[]) {
+    return items.map((item) => ({
+      price: item.price,
+      productId: item.productId,
+      quantity: item.quantity,
+    }));
+  }
+
+  private buildOrderResponse(order: any, products: ProductDto): OrderResponse {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      ...order,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+      orderItem: order?.orderItem?.map((item) => ({
+        ...item,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+        name: products.getProductById(item?.productId)?.name || '',
+      })),
+    };
   }
 }
